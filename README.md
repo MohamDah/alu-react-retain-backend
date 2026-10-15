@@ -31,6 +31,27 @@
 $ npm install
 ```
 
+## Local database
+
+PostgreSQL runs in Docker on `127.0.0.1:5434`. The local database and user are
+`retain`, with password `retain_local`. These credentials are for local development only.
+
+The initial setup includes a local `.env`. On a fresh checkout, copy `.env.example`
+to `.env`, then run from this directory:
+
+```bash
+npm run db:up
+npm run db:generate
+```
+
+PrismaService is exported by PrismaModule for use in feature modules. The Prisma
+schema is intentionally empty; no application tables or migrations are created yet.
+After adding models to `prisma/schema.prisma`, run `npm run db:migrate -- --name init`.
+Use `npm run db:studio` to inspect the database.
+
+`npm run db:down` stops PostgreSQL while preserving its data in a Docker volume.
+Building the backend or starting watch mode automatically regenerates the Prisma client.
+
 ## Compile and run the project
 
 ```bash
