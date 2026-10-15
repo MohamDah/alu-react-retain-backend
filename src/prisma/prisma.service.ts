@@ -14,7 +14,19 @@ export class PrismaService
       throw new Error('DATABASE_URL is required');
     }
 
-    super({ adapter: new PrismaPg({ connectionString }) });
+    const schema =
+      new URL(connectionString).searchParams.get('schema') ?? 'public';
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schema)) {
+      throw new Error(
+        'DATABASE_URL schema must be a valid PostgreSQL identifier',
+      );
+    }
+    super({
+      adapter: new PrismaPg(
+        { connectionString, options: `-c search_path=${schema}` },
+        { schema },
+      ),
+    });
   }
 
   async onModuleInit(): Promise<void> {
