@@ -44,13 +44,128 @@ npm run db:up
 npm run db:generate
 ```
 
-PrismaService is exported by PrismaModule for use in feature modules. The Prisma
-schema is intentionally empty; no application tables or migrations are created yet.
-After adding models to `prisma/schema.prisma`, run `npm run db:migrate -- --name init`.
-Use `npm run db:studio` to inspect the database.
+Apply the committed migration with `npm run db:deploy`. It creates the application
+tables and the protected `Uncategorized` category. For later model changes, use
+`npm run db:migrate -- --name describe_change`. Use `npm run db:studio` to inspect
+the database. PrismaService is exported by PrismaModule for feature modules.
 
 `npm run db:down` stops PostgreSQL while preserving its data in a Docker volume.
 Building the backend or starting watch mode automatically regenerates the Prisma client.
+
+## Prisma schema
+
+The schema is in [prisma/schema.prisma](prisma/schema.prisma):
+
+- `User`: UUID, unique normalized email, scrypt password hash, USER/ADMIN role, registration timestamp.
+- `Category`: UUID, unique name, isDefault flag. The seeded Uncategorized category is immutable.
+- `Expense`: UUID, title, decimal amount, category, date, payment method, nullable notes, owner, creation timestamp.
+- `Budget`: UUID, decimal amount, month, year, owner. One budget per user/month/year.
+
+Amounts are positive, with at most two decimal places. JSON request amounts must
+be numbers; response amounts are decimal strings. Aggregated values always have
+two decimal places. Dates use `YYYY-MM-DD`; payment methods are strings (such as
+`CARD`, `CASH`, or `TRANSFER`). All spending is assumed to use one currency.
+
+## Authentication
+
+Set `JWT_SECRET` in `.env` to a random secret of at least 32 characters. The included
+local secret must never be used in production. Generate a replacement with:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
+```
+
+`POST /auth/signup` and `POST /auth/signin` accept:
+
+```json
+{ "email": "person@example.com", "password": "Strong-password-123" }
+```
+
+Signup returns 201, signin returns 200. Both return `accessToken`, `tokenType`,
+`expiresIn` (3600 seconds), and `user` (id, email, role). Password hashes are never
+returned. Use `Authorization: Bearer <accessToken>` for every other API route.
+The starter `GET /` remains public.
+
+Signup always creates a USER. To provision an admin, sign up normally and use
+`npm run db:studio` to change that user's role to ADMIN. There is deliberately no
+public role-changing endpoint. Guards reload the user's role on every request,
+so promotion/demotion applies immediately to existing tokens.
+
+Auth endpoints are limited to 10 requests per minute per IP, and other endpoints
+to 120. The limiter uses process-local storage; multi-instance production deployments
+need shared storage. JWTs expire after one hour; refresh tokens and logout/revocation
+are not implemented.
+
+## REST API
+
+| Resource          | Methods            | Access              |
+| ----------------- | ------------------ | ------------------- |
+| `/expenses`       | GET, POST          | Authenticated owner |
+| `/expenses/:id`   | GET, PATCH, DELETE | Authenticated owner |
+| `/budgets`        | GET, POST          | Authenticated owner |
+| `/budgets/:id`    | GET, PATCH, DELETE | Authenticated owner |
+| `/categories`     | GET                | Authenticated users |
+| `/categories/:id` | GET                | Authenticated users |
+| `/categories`     | POST               | Admin               |
+| `/categories/:id` | PATCH, DELETE      | Admin               |
+| `/admin/insights` | GET                | Admin               |
+
+Expense creation:
+
+```json
+{
+  "title": "Lunch",
+  "amount": 12.34,
+  "categoryId": "00000000-0000-4000-8000-000000000001",
+  "date": "2026-10-11",
+  "paymentMethod": "CARD",
+  "notes": "Cafe"
+}
+```
+
+`GET /expenses` accepts `page` (default 1), `limit` (default 20, maximum 100),
+`categoryId`, `startDate`, `endDate` (inclusive), `paymentMethod`, `search`
+(case-insensitive title), `minAmount`, and `maxAmount`. It returns `items`, `total`,
+`page`, `limit`, and `totalPages`, ordered by date descending with stable ID ties.
+
+Budget creation: `{"amount":500,"month":10,"year":2026}`. Budget listing accepts
+optional `month` and `year` filters. Category creation accepts `name` and optional
+`isDefault`. The flag identifies default categories; all deletion reassignment
+specifically targets the seeded Uncategorized category.
+
+PATCH accepts only editable fields. Expense notes can be cleared with `null`.
+Clients cannot set `userId`, `role`, or IDs. Deletes return 204; missing or other-user
+records return 404, invalid input returns 400, missing/invalid tokens return 401,
+admin-only access violations return 403, and unique/foreign-key conflicts return 409.
+
+Category deletion locks the category, reassigns **all users'** affected expenses,
+and deletes it in one transaction. Any failure rolls back the entire operation.
+Uncategorized cannot be renamed, changed, or deleted through the API.
+
+## Admin insights
+
+`GET /admin/insights` returns a consistent snapshot containing:
+
+- `totalRegisteredUsers`, `totalExpensesRecorded`, `totalValueOfExpenses`.
+- `currentMonth`: UTC `month`, `year`, `totalExpenses`, and `totalValue`, based on expense dates.
+- `spendingPerCategory`: categoryId, name, totalExpenses, totalValue for every category, including zero spending.
+- `top5Categories`, `bottom5Categories`: ranked by total value, with name-based ties.
+- `recentExpenses`, `recentUsers`: at most five each, ordered by creation/registration time, without password hashes.
+
+## Verification
+
+```bash
+npm run db:up
+npm run test:all
+npm run lint
+```
+
+API tests use the compiled Nest app to preserve decorator metadata. Each suite
+creates a temporary PostgreSQL schema, applies committed migrations, and removes
+the schema afterward without touching development data. The database user needs
+permission to create/drop schemas. Tests cover authentication, ownership, validation,
+pagination, budget uniqueness, admin restrictions, category reassignment/rollback,
+and insight totals/rankings. Build/type checks remain strict.
 
 ## Compile and run the project
 
