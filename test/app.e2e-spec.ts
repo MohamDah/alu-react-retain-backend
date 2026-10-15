@@ -13,6 +13,25 @@ describe('Retain authentication (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('allows preflight requests only from configured frontend origins', async () => {
+    const allowed = await request(context.app.getHttpServer())
+      .options('/expenses')
+      .set('Origin', 'https://retain-app.netlify.app')
+      .set('Access-Control-Request-Method', 'GET')
+      .set('Access-Control-Request-Headers', 'authorization')
+      .expect(204);
+    expect(allowed.headers['access-control-allow-origin']).toBe(
+      'https://retain-app.netlify.app',
+    );
+
+    const denied = await request(context.app.getHttpServer())
+      .options('/expenses')
+      .set('Origin', 'https://untrusted.example')
+      .set('Access-Control-Request-Method', 'GET')
+      .expect(204);
+    expect(denied.headers['access-control-allow-origin']).toBeUndefined();
+  });
+
   it('rejects missing, forged, and expired tokens', async () => {
     await request(context.app.getHttpServer()).get('/expenses').expect(401);
     await request(context.app.getHttpServer())

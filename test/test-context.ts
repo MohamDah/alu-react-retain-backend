@@ -44,6 +44,7 @@ export function setupTestContext(): TestContext {
   const schema = `retain_test_${randomUUID().replaceAll('-', '')}`;
   const originalUrl = process.env.DATABASE_URL;
   const originalSecret = process.env.JWT_SECRET;
+  const originalFrontendOrigin = process.env.FRONTEND_ORIGIN;
   let pool: Pool | undefined;
 
   beforeAll(async () => {
@@ -72,6 +73,8 @@ export function setupTestContext(): TestContext {
     process.env.DATABASE_URL = url.toString();
     process.env.JWT_SECRET =
       'retain-integration-test-only-secret-at-least-32-characters';
+    process.env.FRONTEND_ORIGIN =
+      'https://retain-app.netlify.app,https://retain.example.com';
     const module = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -93,6 +96,9 @@ export function setupTestContext(): TestContext {
       else process.env.DATABASE_URL = originalUrl;
       if (originalSecret === undefined) delete process.env.JWT_SECRET;
       else process.env.JWT_SECRET = originalSecret;
+      if (originalFrontendOrigin === undefined)
+        delete process.env.FRONTEND_ORIGIN;
+      else process.env.FRONTEND_ORIGIN = originalFrontendOrigin;
       if (pool) {
         try {
           await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
