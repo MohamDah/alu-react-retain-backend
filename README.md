@@ -170,16 +170,9 @@ Uncategorized cannot be renamed, changed, or deleted through the API.
 
 ```bash
 npm run db:up
-npm run test:all
+npm run build
 npm run lint
 ```
-
-API tests use the compiled Nest app to preserve decorator metadata. Each suite
-creates a temporary PostgreSQL schema, applies committed migrations, and removes
-the schema afterward without touching development data. The database user needs
-permission to create/drop schemas. Tests cover authentication, ownership, validation,
-pagination, budget uniqueness, admin restrictions, category reassignment/rollback,
-and insight totals/rankings. Build/type checks remain strict.
 
 ## Compile and run the project
 
@@ -192,19 +185,6 @@ $ npm run start:dev
 
 # production mode
 $ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
 ```
 
 ## Deployment
