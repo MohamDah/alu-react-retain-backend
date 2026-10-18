@@ -145,7 +145,7 @@ Uncategorized cannot be renamed, changed, or deleted through the API.
 - `totalRegisteredUsers`, `totalExpensesRecorded`, `totalValueOfExpenses`.
 - `currentMonth`: UTC `month`, `year`, `totalExpenses`, and `totalValue`, based on expense dates.
 - `spendingPerCategory`: categoryId, name, totalExpenses, totalValue for every category, including zero spending.
-- `top5Categories`, `bottom5Categories`: ranked by total value, with name-based ties.
+- `top5Categories`, `bottom5Categories`: ranked by expense count; ties use total value, then category name.
 - `recentExpenses`, `recentUsers`: at most five each, ordered by creation/registration time, without password hashes.
 
 ## Verification

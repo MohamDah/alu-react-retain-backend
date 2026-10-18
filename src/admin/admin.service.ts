@@ -72,13 +72,15 @@ export class AdminService {
           totalExpenses: category.totalExpenses,
           totalValue: category.amount.toFixed(2),
         });
-        const ascending = [...perCategory].sort(
+        const leastUsed = [...perCategory].sort(
           (left, right) =>
+            left.totalExpenses - right.totalExpenses ||
             left.amount.comparedTo(right.amount) ||
             left.name.localeCompare(right.name),
         );
-        const descending = [...perCategory].sort(
+        const mostUsed = [...perCategory].sort(
           (left, right) =>
+            right.totalExpenses - left.totalExpenses ||
             right.amount.comparedTo(left.amount) ||
             left.name.localeCompare(right.name),
         );
@@ -97,8 +99,8 @@ export class AdminService {
             ).toFixed(2),
           },
           spendingPerCategory: perCategory.map(serialize),
-          top5Categories: descending.slice(0, 5).map(serialize),
-          bottom5Categories: ascending.slice(0, 5).map(serialize),
+          top5Categories: mostUsed.slice(0, 5).map(serialize),
+          bottom5Categories: leastUsed.slice(0, 5).map(serialize),
           recentExpenses,
           recentUsers,
         };
