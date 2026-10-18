@@ -75,15 +75,20 @@ are not implemented.
 
 ## Render And Netlify
 
+Deployed services:
+
+- Frontend: https://retain-mohamdah.netlify.app/
+- Backend API: https://alu-react-retain-backend.onrender.com
+
 Deploy this backend as a Render web service and set `DATABASE_URL`, `JWT_SECRET`,
 and `FRONTEND_ORIGIN` in Render's environment settings. `FRONTEND_ORIGIN` must be
 the exact Netlify site origin (scheme and hostname only, no path or trailing slash),
-for example `https://retain-app.netlify.app`. Multiple deployed origins can be
+`https://retain-mohamdah.netlify.app`. Multiple deployed origins can be
 comma-separated. Add custom Netlify domains as additional origins. The backend
 only returns CORS permission for configured origins.
 
 In Netlify's build environment, set `VITE_API_BASE_URL` to the Render service's
-HTTPS origin, for example `https://retain-api.onrender.com` (no `/api` suffix),
+HTTPS origin `https://alu-react-retain-backend.onrender.com` (no `/api` suffix),
 then redeploy the frontend. Vite embeds this value into the static build.
 Development can leave it unset and use the Vite `/api` proxy instead.
 
